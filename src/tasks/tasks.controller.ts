@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put, Query, UsePipes, ValidationPipe } from "@nestjs/common";
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Put, Query, Req, UseGuards, UsePipes, ValidationPipe } from "@nestjs/common";
+import { AuthGuard } from "@nestjs/passport";
 import { FilterTaskDto } from "src/dto/filter-task.dto";
 import { TaskStatusValidation } from "src/pipes/task-status-validation.pipe";
 import { CreateTaskDto } from "../dto/create-task.dto";
@@ -6,6 +7,7 @@ import { Task } from "./task.entity";
 import { TasksService } from "./tasks.service";
 
 @Controller("tasks")
+@UseGuards(AuthGuard())
 export class TasksController {
     constructor(private taskService: TasksService) { }
 
@@ -22,26 +24,27 @@ export class TasksController {
     }
 
     @Post()
-    public createTask(@Body(ValidationPipe) createTaskDto: CreateTaskDto): Promise<Task> {
-        return this.taskService.createTask(createTaskDto);
-    }
-
-    @Delete('/:id')
-    public deleteTask(@Param('id', ParseIntPipe) id: number): any {
-        return this.taskService.deleteTask(id);
+    public createTask(
+        @Body(ValidationPipe) createTaskDto: CreateTaskDto,
+        @Req() req): Promise<Task> {
+        return this.taskService.createTask(createTaskDto, req.user);
     }
 
     @Put('/:id')
     @UsePipes(ValidationPipe)
     public editTask(
         @Param('id', ParseIntPipe) id: number,
-        @Body() createTaskDto: CreateTaskDto): Promise<Task> {
-        return this.taskService.editTask(id, createTaskDto.title, createTaskDto.description);
+        @Body() createTaskDto: CreateTaskDto,
+        @Req() req): Promise<Task> {
+        return this.taskService.editTask(id, createTaskDto.title, createTaskDto.description, req.user);
     }
 
     @Patch('/:id/status')
     @UsePipes(TaskStatusValidation)
-    public editTaskStatus(@Param('id', ParseIntPipe) id: number, @Body() payload: {status: string}) {
-        return this.taskService.editTaskStatus(id, payload);
+    public editTaskStatus(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() payload: { status: string },
+        @Req() req): Promise<Task> {
+        return this.taskService.editTaskStatus(id, payload, req.user);
     }
 }
